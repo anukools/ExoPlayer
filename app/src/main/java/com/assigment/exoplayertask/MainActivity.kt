@@ -1,7 +1,13 @@
 package com.assigment.exoplayertask
 
 import android.annotation.SuppressLint
+import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Bundle
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -9,13 +15,15 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.assigment.exoplayertask.databinding.ActivityMainBinding
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
+import com.google.android.exoplayer2.upstream.DefaultAllocator
 import com.google.android.exoplayer2.util.Log
 import com.google.android.exoplayer2.util.MimeTypes
 import com.google.android.exoplayer2.util.Util
+import java.lang.Math.sqrt
 
 private const val TAG = "MainActivity"
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), SensorListener.onShakeListener {
 
     private val viewBinding by lazy(LazyThreadSafetyMode.NONE) {
         ActivityMainBinding.inflate(layoutInflater)
@@ -28,9 +36,26 @@ class MainActivity : AppCompatActivity() {
     private var currentItem = 0
     private var playbackPosition = 0L
 
+    // shake gesture
+    // Declaring sensorManager
+    private var sensorManager: SensorManager? = null
+    private lateinit var sensorListener: SensorListener
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(viewBinding.root)
+
+        setUpSensorManager()
+    }
+
+    private fun setUpSensorManager() {
+
+        // Getting the Sensor Manager instance
+        sensorListener = SensorListener(this)
+        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+
+        sensorManager?.registerListener(sensorListener, sensorManager!!
+                .getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL)
     }
 
     public override fun onStart() {
@@ -41,15 +66,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     public override fun onResume() {
+        sensorManager?.registerListener(sensorListener, sensorManager!!.getDefaultSensor(
+            Sensor .TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL
+        )
         super.onResume()
         hideSystemUi()
+
+
         if (Util.SDK_INT <= 23 || player == null) {
             initializePlayer()
         }
     }
 
     public override fun onPause() {
+        sensorManager?.unregisterListener(sensorListener)
         super.onPause()
+
         if (Util.SDK_INT <= 23) {
             releasePlayer()
         }
@@ -104,6 +136,10 @@ class MainActivity : AppCompatActivity() {
             controller.hide(WindowInsetsCompat.Type.systemBars())
             controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
+    }
+
+    override fun onShake() {
+        player?.pause()
     }
 }
 
