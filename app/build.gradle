@@ -53,4 +53,7 @@ dependencies {
     implementation 'pub.devrel:easypermissions:3.0.0'
 
     implementation 'com.google.android.gms:play-services-location:21.0.1'
+
+    // Base implementation with a standard SeekBar
+//    implementation("com.github.rubensousa:previewseekbar:3.0.0")
 }

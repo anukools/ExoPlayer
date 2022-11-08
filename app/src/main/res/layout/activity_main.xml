@@ -9,7 +9,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:show_timeout="0"
-        app:hide_on_touch="false"/>
+        app:hide_on_touch="false"
+        app:use_artwork="true"/>
 
 
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton

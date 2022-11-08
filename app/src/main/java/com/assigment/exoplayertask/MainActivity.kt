@@ -49,7 +49,7 @@ class MainActivity : AppCompatActivity(), SensorListener.onShakeListener, EasyPe
 
     // handle location
     private val RC_LOCATION_PERM = 101
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private var fusedLocationClient: FusedLocationProviderClient? = null
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -92,7 +92,7 @@ class MainActivity : AppCompatActivity(), SensorListener.onShakeListener, EasyPe
             .setMinUpdateIntervalMillis(0)
             .setMinUpdateDistanceMeters(10.0f) // MIN Distance for location updates 10 meters
             .build()
-        fusedLocationClient.requestLocationUpdates(
+        fusedLocationClient?.requestLocationUpdates(
             locationRequest,
             locationCallBack,
             Looper.getMainLooper())
