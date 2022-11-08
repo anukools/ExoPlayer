@@ -11,4 +11,17 @@
         app:show_timeout="0"
         app:hide_on_touch="false"/>
 
+
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/btnLocation"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end|top"
+        android:layout_margin="30dp"
+        app:icon="@drawable/ic_baseline_location_on_24"
+        app:iconTint="@color/white"
+        android:backgroundTint="@color/purple_500"
+        android:textColor="@color/white"
+        android:text="Location"/>
+
 </FrameLayout>

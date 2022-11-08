@@ -48,4 +48,9 @@ dependencies {
 
     // ExoPlayer dependencies
     implementation 'com.google.android.exoplayer:exoplayer:2.18.1'
+
+    // For developers using AndroidX in their applications
+    implementation 'pub.devrel:easypermissions:3.0.0'
+
+    implementation 'com.google.android.gms:play-services-location:21.0.1'
 }

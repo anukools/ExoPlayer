@@ -1,12 +1,14 @@
 package com.assigment.exoplayertask
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.location.Location
 import android.os.Bundle
+import android.os.Looper
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
@@ -15,15 +17,19 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.assigment.exoplayertask.databinding.ActivityMainBinding
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
-import com.google.android.exoplayer2.upstream.DefaultAllocator
 import com.google.android.exoplayer2.util.Log
 import com.google.android.exoplayer2.util.MimeTypes
 import com.google.android.exoplayer2.util.Util
-import java.lang.Math.sqrt
+import com.google.android.gms.location.*
+import com.google.android.gms.tasks.CancellationToken
+import com.google.android.gms.tasks.CancellationTokenSource
+import com.google.android.gms.tasks.OnTokenCanceledListener
+import pub.devrel.easypermissions.AppSettingsDialog
+import pub.devrel.easypermissions.EasyPermissions
 
 private const val TAG = "MainActivity"
 
-class MainActivity : AppCompatActivity(), SensorListener.onShakeListener {
+class MainActivity : AppCompatActivity(), SensorListener.onShakeListener, EasyPermissions.PermissionCallbacks {
 
     private val viewBinding by lazy(LazyThreadSafetyMode.NONE) {
         ActivityMainBinding.inflate(layoutInflater)
@@ -41,12 +47,131 @@ class MainActivity : AppCompatActivity(), SensorListener.onShakeListener {
     private var sensorManager: SensorManager? = null
     private lateinit var sensorListener: SensorListener
 
+    // handle location
+    private val RC_LOCATION_PERM = 101
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(viewBinding.root)
 
         setUpSensorManager()
+
+        handleLocationShare()
     }
+
+    private fun handleLocationShare() {
+        viewBinding.btnLocation.setOnClickListener {
+            checkForUserLocation()
+        }
+    }
+
+    private fun checkForUserLocation() {
+        if (hasLocationPermissions()) {
+            // Have permission, do the thing!
+            Toast.makeText(this, "Location Permission available", Toast.LENGTH_LONG).show()
+
+            getUserCurrentLocation()
+        }
+        else {
+            // Ask for one permission
+            EasyPermissions.requestPermissions(
+                this,
+                getString(R.string.rationale_location),
+                RC_LOCATION_PERM,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun getUserCurrentLocation() {
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 0)
+            .setWaitForAccurateLocation(false)
+            .setMinUpdateIntervalMillis(0)
+            .setMinUpdateDistanceMeters(10.0f) // MIN Distance for location updates 10 meters
+            .build()
+        fusedLocationClient.requestLocationUpdates(
+            locationRequest,
+            locationCallBack,
+            Looper.getMainLooper())
+    }
+
+    var currentLat = 0.0
+    var currentLong = 0.0
+    private var locationCallBack = object : LocationCallback() {
+        override fun onLocationResult(locationResult: LocationResult) {
+            super.onLocationResult(locationResult)
+
+            for (location in locationResult.locations) {
+                if (currentLat == 0.0) {
+                    currentLat = location.latitude
+                    currentLong = location.longitude
+                } else {
+//                    Toast.makeText(applicationContext, "Location ${location.latitude}", Toast.LENGTH_SHORT).show();
+                    Log.d(TAG, "Location ${location.longitude}")
+
+                    val results = floatArrayOf(10f)
+                    Location.distanceBetween(
+                        currentLat,
+                        currentLong,
+                        location.latitude,
+                        location.longitude,
+                        results
+                    )
+                    if(results.isNotEmpty()){
+                        val distance = results[0];
+                        Log.d(TAG, "Distance $distance")
+                        if(distance > 10f){
+                            Toast.makeText(applicationContext, "Replay Video", Toast.LENGTH_SHORT).show();
+                            replayVideo()
+                            // reset current location now
+                            currentLat = 0.0
+                            currentLong = 0.0
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        fusedLocationClient?.removeLocationUpdates(locationCallBack)
+    }
+
+    private fun hasLocationPermissions():Boolean {
+        return EasyPermissions.hasPermissions(this, Manifest.permission.ACCESS_FINE_LOCATION)
+    }
+
+
+    override fun onPermissionsGranted(requestCode: Int, perms: MutableList<String>) {
+        if(requestCode == RC_LOCATION_PERM){
+            getUserCurrentLocation()
+        }
+    }
+
+    override fun onPermissionsDenied(requestCode: Int, perms: MutableList<String>) {
+        AppSettingsDialog.Builder(this).build().show()
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == AppSettingsDialog.DEFAULT_SETTINGS_REQ_CODE) {
+            val yes = getString(R.string.yes)
+            val no = getString(R.string.no)
+            // Do something after user returned from app settings screen, like showing a Toast.
+            Toast.makeText(
+                this,
+                getString(R.string.returned_from_app_settings_to_activity,
+                    if (hasLocationPermissions()) yes else no),
+                Toast.LENGTH_LONG)
+                .show()
+        }
+    }
+
+    /** Sensor class handling methods */
 
     private fun setUpSensorManager() {
 
@@ -140,6 +265,13 @@ class MainActivity : AppCompatActivity(), SensorListener.onShakeListener {
 
     override fun onShake() {
         player?.pause()
+    }
+
+    fun replayVideo(){
+        player?.let {
+            it.seekTo(0)
+            it.playWhenReady = true
+        }
     }
 }
 
